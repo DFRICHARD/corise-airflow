@@ -44,6 +44,7 @@ def energy_dataset_dag():
                 if file_name.endswith('.csv'):
                     # Extract a single file from zip
                     dataframes.append(pd.read_csv(energy_data_zip.open(file_name)))
+            print(dataframes)
         return dataframes
 
         
@@ -67,7 +68,7 @@ def energy_dataset_dag():
         bucket_name = "corise-airflow-dfr"
         for data_type, df in zip(data_types, unzip_result):
             # Write the dataframe to GCS as a parquet file
-            client.upload(bucket_name, data_type, df.to_parquet())
+            client.upload(bucket_name= bucket_name, object_name=data_type, data=df.to_parquet())
             # Print the schema of the dataframe
             print(df.dtypes)
             print(f"The {data_type} dataframe was successfully written to the {bucket_name} bucket in GCS")
