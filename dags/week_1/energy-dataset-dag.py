@@ -1,24 +1,21 @@
 from datetime import datetime
 from typing import List
+from zipfile import ZipFile
 
 import pandas as pd
 from airflow.decorators import dag, task # DAG and task decorators for interfacing with the TaskFlow API
+from airflow.providers.google.cloud.hooks.gcs import GCSHook # GCSHook for interfacing with GCS
 
 @dag(
-    # This defines how often your DAG will run, or the schedule by which your DAG runs. In this case, this DAG
-    # will run daily
+    dag_id="energy_dataset_dag",
     schedule_interval="@daily",
-    # This DAG is set to run for the first time on January 1, 2021. Best practice is to use a static
-    # start_date. Subsequent DAG runs are instantiated based on scheduler_interval
-    start_date=datetime(2021, 1, 1),
-    # When catchup=False, your DAG will only run for the latest schedule_interval. In this case, this means
-    # that tasks will not be run between January 1, 2021 and 30 mins ago. When turned on, this DAG's first
-    # run will be for the next 30 mins, per the schedule_interval
+    start_date=datetime(2021, 2, 12),
     catchup=False,
     default_args={
+        "owner": "Dze Richard",
         "retries": 2, # If a task fails, it will retry 2 times.
     },
-    tags=['example']) # If set, this tag is shown in the DAG view of the Airflow UI
+    tags=['corise']) # If set, this tag is shown in the DAG view of the Airflow UI
 def energy_dataset_dag():
     """
     ### Basic ETL Dag
@@ -36,10 +33,20 @@ def energy_dataset_dag():
         building a list of dataframes that is returned.
 
         """
-        from zipfile import ZipFile
-        # TODO Unzip files into pandas dataframes
+        # Extract csv files from zip and return a list of dataframes
+        with ZipFile("dags/data/energy-consumption-generation-prices-and-weather.zip", 'r') as energy_data_zip:
+            # Get a list of all archived file names from the zip
+            filenames_list = energy_data_zip.namelist()
+            # Iterate over the file names
+            dataframes = []
+            for file_name in filenames_list:
+                # Check filename endswith csv
+                if file_name.endswith('.csv'):
+                    # Extract a single file from zip
+                    dataframes.append(pd.read_csv(energy_data_zip.open(file_name)))
+        return dataframes
 
-
+        
     @task
     def load(unzip_result: List[pd.DataFrame]):
         """
@@ -47,8 +54,6 @@ def energy_dataset_dag():
         A simple "load" task that takes in the result of the "transform" task, prints out the 
         schema, and then writes the data into GCS as parquet files.
         """
-
-        from airflow.providers.google.cloud.hooks.gcs import GCSHook
 
         data_types = ['generation', 'weather']
 
@@ -58,11 +63,18 @@ def energy_dataset_dag():
         # The google cloud storage github repo has a helpful example for writing from pandas to GCS:
         # https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_fileio_pandas.py
         
-        client = GCSHook()     \
-        # TODO Add GCS upload code
+        client = GCSHook()
+        bucket_name = "corise-airflow-dfr"
+        for data_type, df in zip(data_types, unzip_result):
+            # Write the dataframe to GCS as a parquet file
+            client.upload(bucket_name, data_type, df.to_parquet())
+            # Print the schema of the dataframe
+            print(df.dtypes)
+            print(f"The {data_type} dataframe was successfully written to the {bucket_name} bucket in GCS")
+  
 
-
-    # TODO Add task linking logic here
+    # Set extract and load tasks to run in parallel
+    load(extract())
 
 
 energy_dataset_dag = energy_dataset_dag()
