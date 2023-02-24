@@ -1,60 +1,16 @@
 from datetime import datetime
-
-import pandas as pd
 from typing import List
 
-from airflow.operators.empty import EmptyOperator
+import pandas as pd
 from airflow.decorators import dag, task, task_group
+from airflow.operators.empty import EmptyOperator
 
-PROJECT_ID = "corise-airflow"
+from common.week_3.config import DATA_TYPES, normalized_columns
+
+
+# PROJECT_ID = # Modify HERE
 # DESTINATION_BUCKET = # Modify HERE
-BQ_DATASET_NAME = "timeseries_energy"
-
-DATA_TYPES = ["generation", "weather"] 
-
-
-normalized_columns = {
-    "generation": {
-        "time": "time",
-        "columns": 
-            [   
-                "total_load_actual",
-                "price_day_ahead",
-                "price_actual",
-                "generation_fossil_hard_coal",
-                "generation_fossil_gas",
-                "generation_fossil_brown_coal_lignite",
-                "generation_fossil_oil",
-                "generation_other_renewable",
-                "generation_waste",
-                "generation_biomass",
-                "generation_other",
-                "generation_solar",
-                "generation_hydro_water_reservoir",
-                "generation_nuclear",
-                "generation_hydro_run_of_river_and_poundage",
-                "generation_wind_onshore",
-                "generation_hydro_pumped_storage_consumption"
-
-            ]
-        },
-    "weather": {
-        "time": "dt_iso",
-        "columns": 
-            [
-                "city_name",
-                "temp",
-                "pressure",
-                "humidity",
-                "wind_speed",
-                "wind_deg",
-                "rain_1h",
-                "rain_3h",
-                "snow_3h",
-                "clouds_all",
-            ]
-        }
-    }
+# BQ_DATASET_NAME = # Modify HERE
 
 
 @dag(
@@ -109,7 +65,7 @@ def data_warehouse_transform_dag():
             bucket.blob(f"week-3/{DATA_TYPES[index]}.parquet").upload_from_string(df.to_parquet(), "text/parquet")
             print(df.dtypes)
 
-    @task_group
+    @task
     def create_bigquery_dataset():
         from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator
         EmptyOperator(task_id='placeholder')
@@ -146,7 +102,7 @@ def data_warehouse_transform_dag():
         EmptyOperator(task_id='placeholder')
 
 
-    @task_group
+    @task
     def produce_joined_view():
         from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyTableOperator
         # TODO Modify here to produce a view that joins the two normalized views on time
