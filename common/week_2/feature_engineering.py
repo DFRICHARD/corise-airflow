@@ -36,8 +36,13 @@ def extract() -> Dict[str, pd.DataFrame]:
 def post_process_energy_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare energy dataframe for merge with weather data
-    """
 
+    Args:
+        df (pd.DataFrame): Energy dataframe
+
+    Returns:
+        pd.DataFrame: Energy dataframe with timestamp as index and null values interpolated
+    """
 
     # Drop columns that are all 0s\
     import pandas as pd
@@ -62,8 +67,13 @@ def post_process_energy_df(df: pd.DataFrame) -> pd.DataFrame:
 def post_process_weather_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare weather dataframe for merge with energy data
-    """
 
+    Args:
+        df (pd.DataFrame): Weather dataframe
+    
+    Returns:
+        pd.DataFrame: Weather dataframe with timestamp as index and null values interpolated
+    """
 
     # Convert all ints to floats
     df = df_convert_dtypes(df, np.int64, np.float64)
@@ -76,12 +86,10 @@ def post_process_weather_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.set_index('time')
 
     # Reset index and drop records for the same city and time
-    df = df.reset_index().drop_duplicates(subset=['time', 'city_name'],
-                                                          keep='first').set_index('time')
+    df = df.reset_index().drop_duplicates(subset=['time', 'city_name'],keep='first').set_index('time')
 
     # Remove unnecessary qualitiative columns
-    df = df.drop(['weather_main', 'weather_id', 
-                                  'weather_description', 'weather_icon'], axis=1)
+    df = df.drop(['weather_main', 'weather_id','weather_description', 'weather_icon'], axis=1)
 
     # Filter out pressure and wind speed outliers
     df.loc[df.pressure > 1051, 'pressure'] = np.nan
@@ -97,6 +105,13 @@ def post_process_weather_df(df: pd.DataFrame) -> pd.DataFrame:
 def join_dataframes_and_post_process(df_energy: pd.DataFrame, df_weather: pd.DataFrame) -> pd.DataFrame:
     """
     Join dataframes and drop city-specific features
+
+    Args:
+        df_energy (pd.DataFrame): Energy dataframe
+        df_weather (pd.DataFrame): Weather dataframe
+    
+    Returns:
+        pd.DataFrame: Merged dataframe with city-specific features dropped
     """
 
 
@@ -124,7 +139,15 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 
     """
     Extract helpful temporal, geographic, and highly correlated energy features
+
+    Args:
+        df (pd.DataFrame): Merged dataframe
+    
+    
+    Returns:
+        pd.DataFrame: Merged dataframe with new features
     """
+    
     # Calculate the weight of every city
     total_pop = 6155116 + 5179243 + 1645342 + 1305342 + 987000
     weight_Madrid = 6155116 / total_pop
