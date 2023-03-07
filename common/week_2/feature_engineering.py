@@ -12,6 +12,7 @@ from airflow.decorators import task, task_group
 
 TRAINING_DATA_PATH = 'week-2/price_prediction_training_data.csv'
 DATASET_NORM_WRITE_BUCKET = 'corise-airflow-dfr'
+VAL_END_INDEX = 31056
 
 def df_convert_dtypes(df: pd.DataFrame, convert_from: np.dtype, convert_to: np.dtype):
     cols = df.select_dtypes(include=[convert_from]).columns
