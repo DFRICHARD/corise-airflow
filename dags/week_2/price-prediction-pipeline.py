@@ -141,7 +141,7 @@ def select_best_model(models: List[xgb.Booster]):
     client = GCSHook()
     client.upload(bucket_name=DATASET_NORM_WRITE_BUCKET,
                   object_name="week-2/best_model.json",
-                  file_name="best_model.json")
+                  filename="best_model.json")
 
     print("Best model saved to GCS :) ")
 
