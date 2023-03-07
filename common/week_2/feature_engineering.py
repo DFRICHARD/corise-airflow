@@ -1,3 +1,8 @@
+'''
+This is a boilerplate code that handles the feature engineering for the energy price prediction pipeline dag in "dags/week2/price-prediction-pipeline.py 
+It serves as task group 1 for the above mentioned dag. Task group 2 for this DAG is the model training and selection part and can be found in the same file as the dag.
+'''
+
 from typing import Dict, List
 
 import numpy as np
@@ -5,7 +10,8 @@ import pandas as pd
 
 from airflow.decorators import task, task_group
 
-VAL_END_INDEX = 31056
+TRAINING_DATA_PATH = 'week-2/price_prediction_training_data.csv'
+DATASET_NORM_WRITE_BUCKET = 'corise-airflow-dfr'
 
 def df_convert_dtypes(df: pd.DataFrame, convert_from: np.dtype, convert_to: np.dtype):
     cols = df.select_dtypes(include=[convert_from]).columns
@@ -21,8 +27,10 @@ def extract() -> Dict[str, pd.DataFrame]:
     A simple task that loads each file in the zipped file into a dataframe,
     building a list of dataframes that is returned
 
-
+    Returns:
+        Dict[str, pd.DataFrame]: Dictionary of dataframes(energy and weather)
     """
+
     from zipfile import ZipFile
     filename = "/usr/local/airflow/dags/data/energy-consumption-generation-prices-and-weather.zip"
     dfs = [pd.read_csv(ZipFile(filename).open(i)) for i in ZipFile(filename).namelist()]
@@ -215,8 +223,8 @@ def prepare_model_inputs(df_final: pd.DataFrame):
     Transform each feature to fall within a range from 0 to 1, pull out the target price from the features, 
     and use PCA to reduce the features to those with an explained variance >= 0.80. Concatenate the scaled and 
     dimensionality-reduced feature matrix with the scaled target vector, and return this result.
-    matrix with the 
     """
+
     from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
     from sklearn.decomposition import PCA
     from airflow.providers.google.cloud.hooks.gcs import GCSHook
@@ -236,11 +244,15 @@ def prepare_model_inputs(df_final: pd.DataFrame):
     X_pca = pca.transform(X_norm)
     dataset_norm = np.concatenate((X_pca, y_norm), axis=1)
     df_norm = pd.DataFrame(dataset_norm)
-    client = GCSHook().get_conn()
-    # 
-    write_bucket = client.bucket(DATASET_NORM_WRITE_BUCKET)
-    write_bucket.blob(TRAINING_DATA_PATH).upload_from_string(pd.DataFrame(dataset_norm).to_csv())
-
+    
+    client = GCSHook()
+    client.upload(bucket_name=DATASET_NORM_WRITE_BUCKET,
+                  object_name=TRAINING_DATA_PATH,
+                  data=df_norm.to_csv())
+    
+    # write the normalized dataset into a bucket 
+    # write_bucket = client.bucket(DATASET_NORM_WRITE_BUCKET)
+    # write_bucket.blob(TRAINING_DATA_PATH).upload_from_string(.to_csv())
 
 @task_group
 def join_data_and_add_features():
