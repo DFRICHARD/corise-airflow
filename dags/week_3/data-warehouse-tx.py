@@ -106,30 +106,24 @@ def data_warehouse_transform_dag():
         # PARQUET.
 
         for data_type in DATA_TYPES:
-            try:
-                BigQueryCreateExternalTableOperator(
-                    task_id=f"create_external_table_for_{data_type}",
-                    table_resource={
-                        "type": "EXTERNAL",
-                        "sourceFormat": "PARQUET",
-                        "sourceUris": [
-                            f"gs://{DESTINATION_BUCKET}/week-3/{data_type}.parquet"
-                        ],
-                    },
-                    dataset_id=BQ_DATASET_NAME,
-                    table_id=f"{data_type}_external",
-                    project_id=PROJECT_ID,
-                    location="US",
-                    description=f"External table for {data_type} data")
-                
-                print(f"---- Successfully created external table for {data_type} ----")
             
-            except Exception as e:
-                print(f"---- Failed to create external table for {data_type} ----")
-                print(e)
-                pass
-
-
+            BigQueryCreateExternalTableOperator(
+                task_id=f"create_external_table_for_{data_type}",
+                table_resource={
+                    "type": "EXTERNAL",
+                    "tableReference": {
+                        "projectId": PROJECT_ID,
+                        "datasetId": BQ_DATASET_NAME,
+                        "tableId": f"{data_type}_external"
+                    },
+                    "description": f"External table for {data_type} data",
+                    "externalDataConfiguration": {"sourceFormat": "PARQUET",
+                                                  "sourceUris": [f"gs://{DESTINATION_BUCKET}/week-3/{data_type}.parquet"]
+                                                  }
+                }
+            )
+            print(f"---- Successfully created external table for {data_type} ----")
+        
     def produce_select_statement(timestamp_column: str, columns: List[str]) -> str:
         """
         #### Produce Select Statement
@@ -166,25 +160,22 @@ def data_warehouse_transform_dag():
         for data_type in DATA_TYPES:
             view_query = produce_select_statement(timestamp_column=NORMALIZED_COLUMNS[data_type]["time"],
                                          columns=NORMALIZED_COLUMNS[data_type]["columns"])
-            try:
-                BigQueryCreateEmptyTableOperator(
-                    task_id=f"create_normalized_view_for_{data_type}",
-                    dataset_id=BQ_DATASET_NAME,
-                    table_id=f"{data_type}_normalized_view",
-                    project_id=PROJECT_ID,
-                    location="US",
-                    description=f"Normalized view for {data_type} data",
-                    view={
-                        "query": view_query ,
-                        "useLegacySql": False
-                    })
-                
-                print(f"---- Successfully created normalized view for {data_type} ----")
+            BigQueryCreateEmptyTableOperator(
+                task_id=f"create_normalized_view_for_{data_type}",
+                dataset_id=BQ_DATASET_NAME,
+                table_id=f"{data_type}_normalized_view",
+                project_id=PROJECT_ID,
+                table_resource={
+                    "type": "VIEW",
+                    "description": f"Normalized view for {data_type} data"
+                    },
+                view={
+                    "query": view_query ,
+                    "useLegacySql": False
+                })
             
-            except Exception as e:
-                print(f"---- Failed to create normalized view for {data_type} ----")
-                print(e)
-                pass
+            print(f"---- Successfully created normalized view for {data_type} ----")
+        
 
     @task_group
     def produce_joined_view():
@@ -204,25 +195,22 @@ def data_warehouse_transform_dag():
         
         joined_view_name = f"{DATA_TYPES[0]}_{DATA_TYPES[1]}_joined_view"
 
-        try:
-            BigQueryCreateEmptyTableOperator(
-                task_id=f"create_joined_view",
-                dataset_id=BQ_DATASET_NAME,
-                table_id= joined_view_name,
-                project_id=PROJECT_ID,
-                location="US",
-                description=f"Joined view for {DATA_TYPES[0]} and {DATA_TYPES[1]} data",
-                view={
-                    "query": joined_view_query ,
-                    "useLegacySql": False
-                })
-            
-            print(f"---- Successfully created joined view ----")
-
-        except Exception as e:
-            print(f"---- Failed to create joined view ----")
-            print(e)
-            pass
+        
+        BigQueryCreateEmptyTableOperator(
+            task_id= "create_joined_view",
+            dataset_id=BQ_DATASET_NAME,
+            table_id= joined_view_name,
+            project_id=PROJECT_ID,
+            table_resource={"type": "VIEW", 
+                            "description" :f"Joined view for {DATA_TYPES[0]} and {DATA_TYPES[1]} data"
+                            },
+            view={
+                "query": joined_view_query ,
+                "useLegacySql": False
+            }
+            )
+        
+        print(f"---- Successfully created joined view for {DATA_TYPES[0]} and {DATA_TYPES[1]} data ----")
 
 
     unzip_task = extract()
