@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import pandas as pd
@@ -8,15 +8,20 @@ from airflow.operators.empty import EmptyOperator
 from common.week_3.config import DATA_TYPES, normalized_columns
 
 
-# PROJECT_ID = # Modify HERE
-# DESTINATION_BUCKET = # Modify HERE
-# BQ_DATASET_NAME = # Modify HERE
+PROJECT_ID = "airflow-week"
+DESTINATION_BUCKET = 'corise-airflow-dfr'
+BQ_DATASET_NAME = "energy_data"
 
+default_args={"owner": "Dze Richard",
+              "retries": 2, # If a task fails, it will retry 2 times. 
+              "retry_delay": timedelta(seconds=60)                       
+              }
 
 @dag(
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
     catchup=False,
+    default_args=default_args
     ) 
 def data_warehouse_transform_dag():
     """
@@ -51,6 +56,9 @@ def data_warehouse_transform_dag():
         #### Load task
         A simple "load" task that takes in the result of the "extract" task, formats
         columns to be BigQuery-compliant, and writes data to GCS.
+
+        Args:
+            unzip_result (List[pd.DataFrame]): A list of dataframes, one for each file in the zip file
         """
 
         from airflow.providers.google.cloud.hooks.gcs import GCSHook
