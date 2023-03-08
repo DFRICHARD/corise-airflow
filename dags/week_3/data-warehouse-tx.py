@@ -8,7 +8,7 @@ from airflow.operators.empty import EmptyOperator
 from common.week_3.config import DATA_TYPES, NORMALIZED_COLUMNS
 
 
-PROJECT_ID = "airflow-week"
+PROJECT_ID = "airflow-week-377500"
 DESTINATION_BUCKET = 'corise-airflow-dfr'
 BQ_DATASET_NAME = "energy_data"
 
@@ -86,7 +86,7 @@ def data_warehouse_transform_dag():
                                            project_id=PROJECT_ID,
                                            location="us-east1",
                                            task_id="create_bigquery_dataset_if_not_exists",
-                                           if_exists="ignore")
+                                           )
         print(f"---- Successfully created `{BQ_DATASET_NAME}` ----")
  
 
