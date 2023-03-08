@@ -84,7 +84,7 @@ def data_warehouse_transform_dag():
         
         BigQueryCreateEmptyDatasetOperator(dataset_id=BQ_DATASET_NAME, 
                                            project_id=PROJECT_ID,
-                                           location="US",
+                                           location="us-east1",
                                            task_id="create_bigquery_dataset_if_not_exists",
                                            )
         print(f"---- Successfully created `{BQ_DATASET_NAME}` ----")
