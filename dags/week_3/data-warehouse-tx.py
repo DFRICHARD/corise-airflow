@@ -84,7 +84,7 @@ def data_warehouse_transform_dag():
         
         BigQueryCreateEmptyDatasetOperator(dataset_id=BQ_DATASET_NAME, 
                                            project_id=PROJECT_ID,
-                                           location="us-east1",
+                                           location="US",
                                            task_id="create_bigquery_dataset_if_not_exists",
                                            )
         print(f"---- Successfully created `{BQ_DATASET_NAME}` ----")
@@ -119,7 +119,7 @@ def data_warehouse_transform_dag():
                     dataset_id=BQ_DATASET_NAME,
                     table_id=f"{data_type}_external",
                     project_id=PROJECT_ID,
-                    location="us-east1",
+                    location="US",
                     description=f"External table for {data_type} data")
                 
                 print(f"---- Successfully created external table for {data_type} ----")
@@ -172,7 +172,7 @@ def data_warehouse_transform_dag():
                     dataset_id=BQ_DATASET_NAME,
                     table_id=f"{data_type}_normalized_view",
                     project_id=PROJECT_ID,
-                    location="us-east1",
+                    location="US",
                     description=f"Normalized view for {data_type} data",
                     view={
                         "query": view_query ,
@@ -210,7 +210,7 @@ def data_warehouse_transform_dag():
                 dataset_id=BQ_DATASET_NAME,
                 table_id= joined_view_name,
                 project_id=PROJECT_ID,
-                location="us-east1",
+                location="US",
                 description=f"Joined view for {DATA_TYPES[0]} and {DATA_TYPES[1]} data",
                 view={
                     "query": joined_view_query ,
