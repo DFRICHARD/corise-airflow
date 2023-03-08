@@ -1,6 +1,6 @@
 DATA_TYPES = ["generation", "weather"] 
 
-normalized_columns = {
+NORMALIZED_COLUMNS = {
     "generation": {
         "time": "time",
         "columns": 
