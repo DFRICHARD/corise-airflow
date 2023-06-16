@@ -2,7 +2,7 @@
 
 <div align="center">
 <strong><code>
-Tools: Python, Numpy, Pandas, XGBoost, Airflow, Google Cloud Storage, SQL, BigQuery
+Tools: Python, Numpy, Pandas, XGBoost, Airflow, Google Cloud Storage
 </code></strong>
 </div>
 
